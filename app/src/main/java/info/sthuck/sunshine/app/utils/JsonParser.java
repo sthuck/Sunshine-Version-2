@@ -1,5 +1,7 @@
 package info.sthuck.sunshine.app.utils;
 
+import android.content.Context;
+import android.content.res.Resources;
 import android.text.format.Time;
 import android.util.Log;
 
@@ -8,6 +10,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
+import java.util.function.UnaryOperator;
+
+import info.sthuck.sunshine.app.R;
 
 /**
  * Created by aviadh on 13/11/2016.
@@ -34,7 +39,12 @@ public class JsonParser {
     /**
      * Prepare the weather high/lows for presentation.
      */
-    private String formatHighLows(double high, double low) {
+    private String formatHighLows(double high, double low, String units, Resources resources) {
+
+        if (units.equals(resources.getString(R.string.pref_units_imperial))) {
+            high = high * 1.8 + 32;
+            low = low * 1.8 + 32;
+        }
         // For presentation, assume the user doesn't care about tenths of a degree.
         long roundedHigh = Math.round(high);
         long roundedLow = Math.round(low);
@@ -50,7 +60,8 @@ public class JsonParser {
      * Fortunately parsing is easy:  constructor takes the JSON string and converts it
      * into an Object hierarchy for us.
      */
-    public String[] getWeatherDataFromJson(String forecastJsonStr, int numDays, String LOG_TAG)
+    public String[] getWeatherDataFromJson(String forecastJsonStr, int numDays, String LOG_TAG,
+                                           String units, Context context)
             throws JSONException {
 
         // These are the names of the JSON objects that need to be extracted.
@@ -109,7 +120,7 @@ public class JsonParser {
             double high = temperatureObject.getDouble(OWM_MAX);
             double low = temperatureObject.getDouble(OWM_MIN);
 
-            highAndLow = formatHighLows(high, low);
+            highAndLow = formatHighLows(high, low, units, context.getResources());
             resultStrs[i] = day + " - " + description + " - " + highAndLow;
         }
 

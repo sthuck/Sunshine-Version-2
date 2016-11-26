@@ -1,18 +1,12 @@
 package info.sthuck.sunshine.app;
 
-import android.support.v4.app.Fragment;
+import android.content.Intent;
+import android.net.Uri;
+import android.preference.PreferenceManager;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
-import android.widget.ListView;
-
-import java.util.Arrays;
-import java.util.List;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -44,9 +38,29 @@ public class MainActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            Intent intent = new Intent(this, SettingsActivity.class);
+            startActivity(intent);
             return true;
+        } else {
+            if (id == R.id.action_open_location) {
+                openPreferredLocation();
+                return true;
+            }
         }
-
         return super.onOptionsItemSelected(item);
+    }
+
+    private void openPreferredLocation() {
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        String preferredLac = PreferenceManager.getDefaultSharedPreferences(this)
+                .getString(getResources().getString(R.string.pref_location_key),
+                        getResources().getString(R.string.pref_location_default));
+        intent.setData(Uri.parse("geo:0,0")
+                .buildUpon()
+                .appendQueryParameter("q", preferredLac)
+                .build());
+        if (intent.resolveActivity(getPackageManager()) != null) {
+            startActivity(intent);
+        }
     }
 }
