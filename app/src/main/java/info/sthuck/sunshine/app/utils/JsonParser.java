@@ -10,13 +10,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
-import java.util.function.UnaryOperator;
 
 import info.sthuck.sunshine.app.R;
 
-/**
- * Created by aviadh on 13/11/2016.
- */
 public class JsonParser {
     private static JsonParser ourInstance = new JsonParser();
 
