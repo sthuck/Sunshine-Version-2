@@ -33,7 +33,10 @@
                     <meta-data
                         android:name="android.support.PARENT_ACTIVITY"
                         android:value=".MainActivity" />
-                </activity>
+        </activity>
+        <provider
+            android:authorities="info.sthuck.sunshine.app"
+            android:name=".data.WeatherProvider"/>
     </application>
 
 </manifest>
