@@ -41,24 +41,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
-import java.net.URI;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Vector;
 
-import static android.R.attr.y;
 
 public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
 
     private final String LOG_TAG = FetchWeatherTask.class.getSimpleName();
-
-    private ArrayAdapter<String> mForecastAdapter;
     private final Context mContext;
 
-    public FetchWeatherTask(Context context, ArrayAdapter<String> forecastAdapter) {
+    public FetchWeatherTask(Context context) {
         mContext = context;
-        mForecastAdapter = forecastAdapter;
     }
 
     private boolean DEBUG = true;
@@ -72,36 +67,6 @@ public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
         Date date = new Date(time);
         SimpleDateFormat format = new SimpleDateFormat("E, MMM d");
         return format.format(date).toString();
-    }
-
-    /**
-     * Prepare the weather high/lows for presentation.
-     */
-    private String formatHighLows(double high, double low) {
-        // Data is fetched in Celsius by default.
-        // If user prefers to see in Fahrenheit, convert the values here.
-        // We do this rather than fetching in Fahrenheit so that the user can
-        // change this option without us having to re-fetch the data once
-        // we start storing the values in a database.
-        SharedPreferences sharedPrefs =
-                PreferenceManager.getDefaultSharedPreferences(mContext);
-        String unitType = sharedPrefs.getString(
-                mContext.getString(R.string.pref_units_key),
-                mContext.getString(R.string.pref_units_metric));
-
-        if (unitType.equals(mContext.getString(R.string.pref_units_imperial))) {
-            high = (high * 1.8) + 32;
-            low = (low * 1.8) + 32;
-        } else if (!unitType.equals(mContext.getString(R.string.pref_units_metric))) {
-            Log.d(LOG_TAG, "Unit type not found: " + unitType);
-        }
-
-        // For presentation, assume the user doesn't care about tenths of a degree.
-        long roundedHigh = Math.round(high);
-        long roundedLow = Math.round(low);
-
-        String highLowStr = roundedHigh + "/" + roundedLow;
-        return highLowStr;
     }
 
     /**
@@ -138,27 +103,6 @@ public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
         }
         cur.close();
         return locationId;
-    }
-
-    /*
-        Students: This code will allow the FetchWeatherTask to continue to return the strings that
-        the UX expects so that we can continue to test the application even once we begin using
-        the database.
-     */
-    String[] convertContentValuesToUXFormat(Vector<ContentValues> cvv) {
-        // return strings to keep UI functional for now
-        String[] resultStrs = new String[cvv.size()];
-        for ( int i = 0; i < cvv.size(); i++ ) {
-            ContentValues weatherValues = cvv.elementAt(i);
-            String highAndLow = formatHighLows(
-                    weatherValues.getAsDouble(WeatherEntry.COLUMN_MAX_TEMP),
-                    weatherValues.getAsDouble(WeatherEntry.COLUMN_MIN_TEMP));
-            resultStrs[i] = getReadableDateString(
-                    weatherValues.getAsLong(WeatherEntry.COLUMN_DATE)) +
-                    " - " + weatherValues.getAsString(WeatherEntry.COLUMN_SHORT_DESC) +
-                    " - " + highAndLow;
-        }
-        return resultStrs;
     }
 
     /**
@@ -218,7 +162,7 @@ public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
             long locationId = addLocation(locationSetting, cityName, cityLatitude, cityLongitude);
 
             // Insert the new weather information into the database
-            Vector<ContentValues> cVVector = new Vector<ContentValues>(weatherArray.length());
+            Vector<ContentValues> cVVector = new Vector<>(weatherArray.length());
 
             // OWM returns daily forecasts based upon the local time of the city that is being
             // asked for, which means that we need to know the GMT offset to translate this data
@@ -297,30 +241,7 @@ public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
                         cVVector.toArray(new ContentValues[]{}));
             }
 
-            // Sort order:  Ascending, by date.
-            String sortOrder = WeatherEntry.COLUMN_DATE + " ASC";
-            Uri weatherForLocationUri = WeatherEntry.buildWeatherLocationWithStartDate(
-                    locationSetting, System.currentTimeMillis());
-
-            // Students: Uncomment the next lines to display what what you stored in the bulkInsert
-
-            Cursor cur = mContext.getContentResolver().query(weatherForLocationUri,
-                    null, null, null, sortOrder);
-
-            cVVector = new Vector<ContentValues>(cur.getCount());
-            if ( cur.moveToFirst() ) {
-                do {
-                    ContentValues cv = new ContentValues();
-                    DatabaseUtils.cursorRowToContentValues(cur, cv);
-                    cVVector.add(cv);
-                    Log.d(LOG_TAG, "FetchWeatherTask:" + cv);
-                } while (cur.moveToNext());
-            }
-
             Log.d(LOG_TAG, "FetchWeatherTask Complete. " + cVVector.size() + " Inserted");
-
-            String[] resultStrs = convertContentValuesToUXFormat(cVVector);
-            return resultStrs;
 
         } catch (JSONException e) {
             Log.e(LOG_TAG, e.getMessage(), e);
@@ -425,16 +346,5 @@ public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
         }
         // This will only happen if there was an error getting or parsing the forecast.
         return null;
-    }
-
-    @Override
-    protected void onPostExecute(String[] result) {
-        if (result != null && mForecastAdapter != null) {
-            mForecastAdapter.clear();
-            for(String dayForecastStr : result) {
-                mForecastAdapter.add(dayForecastStr);
-            }
-            // New data is back from the server.  Hooray!
-        }
     }
 }
